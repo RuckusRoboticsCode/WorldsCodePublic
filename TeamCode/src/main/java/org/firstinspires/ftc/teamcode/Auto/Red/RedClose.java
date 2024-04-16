@@ -24,7 +24,7 @@ public class RedClose extends LinearOpModeEx {
     public void runOpMode() throws InterruptedException {
         super.runOpMode();
 
-        defaultAuto = new CloseAutonomousOpMode(this, Util.AllianceColor.RED, Util.Parking.CORNER);
+        defaultAuto = new CloseAutonomousOpMode(this, Util.AllianceColor.RED);
 
         while (opModeInInit() && auto == null) {
             gamepadEx1.update();

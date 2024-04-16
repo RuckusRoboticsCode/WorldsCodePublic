@@ -29,8 +29,8 @@ public class LeftPropProcessor extends PropProcessor implements CameraStreamSour
 	private final Mat lowMat = new Mat();
 	private final Mat finalMat = new Mat();
 
-	private final double middleThreshold = 0.15;
-	private final double leftThreshold = 0.2;
+	private final double middleThreshold = 0.0375;
+	private final double leftThreshold = 0.05;
 	private Telemetry telemetry;
 
 	private Prop.Location propLocation;
@@ -121,6 +121,10 @@ public class LeftPropProcessor extends PropProcessor implements CameraStreamSour
 		Bitmap b = Bitmap.createBitmap(frame.width(), frame.height(), Bitmap.Config.RGB_565);
 		Utils.matToBitmap(frame, b);
 		lastFrame.set(b);
+
+		if (telemetry != null) {
+			updateTelemetry();
+		}
 
 		return null;
 	}

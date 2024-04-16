@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.ftc.Actions;
 
 import org.firstinspires.ftc.teamcode.Auto.Subsystems.Deposit;
 import org.firstinspires.ftc.teamcode.Auto.Subsystems.Intake;
@@ -33,7 +34,7 @@ public class CloseAutonomousOpMode {
     public MecanumDrive drive;
 
     private final AllianceColor allianceColor;
-    private Path path = null;
+    private Path path = Path.TRUSS;
     private final Parking parking;
     private int numCycles = 0;
 
@@ -64,7 +65,7 @@ public class CloseAutonomousOpMode {
     private Action firstCycle;
     private Action secondCycle;
 
-    private final Action resetAction;
+    private Action resetAction;
 
     public CloseAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor, Parking parking, Path path, int numCycles) {
 
@@ -90,11 +91,25 @@ public class CloseAutonomousOpMode {
         linearSlides.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
         intake.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
 
+        buildCommonActions();
+        buildAll();
+    }
+
+    public CloseAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor) {
+        this(linearOpModeEx, allianceColor, Parking.CORNER, Path.TRUSS, 0);
+    }
+
+    private void buildCommonActions() {
+        scoreAction = new SequentialAction(
+                deposit.flipGate(Deposit.GatePositions.OPEN),
+                new SleepAction(depositTime)
+        );
+
         resetAction = new SequentialAction(
                 new SleepAction(resetWaitTime),
                 new ParallelAction(
-                    linearSlides.moveTo(0),
-                    deposit.flipGate(Deposit.GatePositions.CLOSED)
+                        linearSlides.moveTo(0),
+                        deposit.flipGate(Deposit.GatePositions.CLOSED)
                 ),
                 deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
         );
@@ -108,9 +123,9 @@ public class CloseAutonomousOpMode {
                 intake.moveRake(Intake.RakePositions.LIFTED),
                 new SleepAction(depositTime),
                 new ParallelAction(
-                        intake.intakeTwo(Intake.IntakeSpeeds.MEDIUM_INTAKE, intakeTimeout),
+                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
                         drive.actionBuilder(
-                                new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
+                                        new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector,
                                         new TranslationalVelConstraint(25),
                                         new ProfileAccelConstraint(-30, 30))
@@ -127,7 +142,7 @@ public class CloseAutonomousOpMode {
                 intake.moveRake(Intake.RakePositions.LIFTED),
                 new SleepAction(depositTime),
                 new ParallelAction(
-                        intake.intakeTwo(Intake.IntakeSpeeds.MEDIUM_INTAKE, intakeTimeout),
+                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
                         drive.actionBuilder(
                                         new Pose2d(BlueLocations.Poses.TRUSS_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.TRUSS_STACK.vector,
@@ -154,51 +169,6 @@ public class CloseAutonomousOpMode {
                         .strafeToSplineHeading(BlueLocations.Poses.TRUSS_WAIT.vector, Math.toRadians(135))
                         .build()
         );
-
-        scoreAction = new SequentialAction(
-                deposit.flipGate(Deposit.GatePositions.OPEN),
-                new SleepAction(depositTime)
-        );
-
-        buildAll();
-    }
-
-    public CloseAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor, Parking parking) {
-        this.parking = parking;
-        this.allianceColor = allianceColor;
-        this.vision = new Vision(linearOpModeEx, allianceColor, true);
-
-        linearSlides = new LinearSlides(linearOpModeEx);
-        deposit = new Deposit(linearOpModeEx);
-        intake = new Intake(linearOpModeEx);
-
-        startingPose = BlueLocations.Poses.CLOSE_STARTING.pose;
-        if (allianceColor == AllianceColor.RED) {
-            startingPose = new Pose2d(
-                    new Vector2d(startingPose.position.x, -startingPose.position.y),
-                    startingPose.heading.inverse()
-            );
-        }
-
-        drive = new MecanumDrive(linearOpModeEx.hardwareMap, startingPose);
-        linearSlides.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
-        intake.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
-
-        resetAction = new SequentialAction(
-                new SleepAction(resetWaitTime),
-                new ParallelAction(
-                        linearSlides.moveTo(0),
-                        deposit.flipGate(Deposit.GatePositions.CLOSED),
-                        deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
-                )
-        );
-
-        scoreAction = new SequentialAction(
-                deposit.flipGate(Deposit.GatePositions.OPEN),
-                new SleepAction(depositTime)
-        );
-
-        buildAll();
     }
 
     public Prop.Location detectPropLocation() {
@@ -214,6 +184,8 @@ public class CloseAutonomousOpMode {
         if (numCycles == 2) {
             secondCycle = getTrajectory(secondCycleActions, propLocation);
         }
+
+//        vision.closePropProcessor();
 
         return propLocation;
     }
@@ -247,6 +219,21 @@ public class CloseAutonomousOpMode {
         }
 
         buildSecondCycle();
+    }
+
+    public void runAll() {
+        Actions.runBlocking(preLoad);
+        if (numCycles == 0) {
+            Actions.runBlocking(park);
+            return;
+        }
+        Actions.runBlocking(firstCycle);
+        if (numCycles == 1) {
+            Actions.runBlocking(park);
+            return;
+        }
+        Actions.runBlocking(secondCycle);
+        Actions.runBlocking(park);
     }
 
     private Action getTrajectory(ArrayList<Action> trajectories, Prop.Location propLocation) {
@@ -731,5 +718,9 @@ public class CloseAutonomousOpMode {
 
         secondCycleActions.add(secondCycleActions.get(1));
 
+    }
+
+    public void close() {
+        vision.closeAll();
     }
 }

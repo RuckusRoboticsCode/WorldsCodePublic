@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 
 import com.acmerobotics.dashboard.config.Config;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.function.Consumer;
 import org.firstinspires.ftc.robotcore.external.function.Continuation;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -47,8 +48,10 @@ public class AprilTagProcessor extends cAprilTagProcessorImpl implements CameraS
     private Mat leftYellow = new Mat();
     private Mat rightYellow = new Mat();
 
+    private Telemetry telemetry;
     public static double threshold = 0.05;
     private PixelLocation pixelLocation = PixelLocation.NOT_FOUND;
+    private PixelLocation lastValidPixelLocation = PixelLocation.RIGHT;
 
     public AprilTagProcessor(double fx, double fy, double cx, double cy, DistanceUnit outputUnitsLength, AngleUnit outputUnitsAngle, AprilTagLibrary tagLibrary, boolean drawAxes, boolean drawCube, boolean drawOutline, boolean drawTagID, TagFamily tagFamily, int threads, boolean suppressCalibrationWarnings) {
         super(fx, fy, cx, cy, outputUnitsLength, outputUnitsAngle, tagLibrary, drawAxes, drawCube, drawOutline, drawTagID, tagFamily, threads, suppressCalibrationWarnings);
@@ -129,6 +132,15 @@ public class AprilTagProcessor extends cAprilTagProcessorImpl implements CameraS
         }
         Imgproc.drawMarker(input, center, greenBorder, Imgproc.MARKER_CROSS, 5);
 
+        if (telemetry != null) {
+            telemetry.addData("Pixel Location", pixelLocation);
+            telemetry.update();
+        }
+
+        if (pixelLocation != PixelLocation.NOT_FOUND) {
+            lastValidPixelLocation = pixelLocation;
+        }
+
         return null;
     }
 
@@ -148,11 +160,18 @@ public class AprilTagProcessor extends cAprilTagProcessorImpl implements CameraS
     }
 
     public PixelLocation getPixelLocation() {
+        if (pixelLocation == PixelLocation.NOT_FOUND) {
+            return lastValidPixelLocation;
+        }
         return pixelLocation;
     }
 
     @Override
     public void getFrameBitmap(Continuation<? extends Consumer<Bitmap>> continuation) {
         continuation.dispatch(bitmapConsumer -> bitmapConsumer.accept(lastFrame.get()));
+    }
+
+    public void setTelemetry(Telemetry telemetry) {
+        this.telemetry = telemetry;
     }
 }

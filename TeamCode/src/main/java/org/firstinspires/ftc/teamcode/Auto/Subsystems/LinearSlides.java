@@ -28,6 +28,12 @@ public class LinearSlides {
         leftSlide = new CachingDcMotorEX(linearOpModeEx.hardwareMap.get(DcMotorEx.class, HardwareNames.SLIDES_LEFT), 0.005);
         rightSlide = new CachingDcMotorEX(linearOpModeEx.hardwareMap.get(DcMotorEx.class, HardwareNames.SLIDES_RIGHT), 0.005);
 
+        leftSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        leftSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         leftSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -36,8 +42,8 @@ public class LinearSlides {
 
         leftSlide.setCurrentAlert(6, CurrentUnit.AMPS);
 
-        controller = new PIDFController(0.0078, 0, 0.00035, 0.1);
-        controller.setTargetTolerance(15);
+        controller = new PIDFController(0.0078 * 1.1, 0, 0.00035, 0.1);
+        controller.setTargetTolerance(20);
     }
 
     public void setIntermittentVoltageSensor(IntermittentVoltageSensor intermittentVoltageSensor) {
@@ -62,13 +68,13 @@ public class LinearSlides {
                 }
 
                 if (leftSlide.isOverCurrent()) {
-                    power = 0;
+                    controller.setTargetTolerance(0);
 
-                    leftSlide.setPower(power);
-                    rightSlide.setPower(power);
+                    leftSlide.setPower(0);
+                    rightSlide.setPower(0);
 
                     leftSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                    rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//                    rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
                     leftSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                     rightSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);

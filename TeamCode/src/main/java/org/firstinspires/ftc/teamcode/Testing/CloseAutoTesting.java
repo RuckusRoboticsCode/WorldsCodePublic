@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.Testing;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -30,6 +32,7 @@ public class CloseAutoTesting extends LinearOpModeEx {
     @Override
     public void runOpMode() throws InterruptedException {
         super.runOpMode();
+//        telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
 
         auto = new CloseAutonomousOpMode(
                 this,
@@ -38,6 +41,10 @@ public class CloseAutoTesting extends LinearOpModeEx {
                 path,
                 2
         );
+
+        while (opModeInInit()) {
+            telemetry.update();
+        }
 
         waitForStart();
 

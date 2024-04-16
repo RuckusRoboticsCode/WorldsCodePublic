@@ -122,6 +122,35 @@ public class MeepMeepTesting {
                 .build();
 
 
+        Action closeMiddle = closeBot.getDrive().actionBuilder(closeStarting)
+                .strafeTo(new Vector2d(12, 31))
+                .setTangent(Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(51, 36, Math.toRadians(180)), Math.toRadians(0))
+
+                .waitSeconds(servoWaitTime) // score
+                .setTangent(Math.toRadians(180))
+                .splineToSplineHeading(new Pose2d(20, 11, Math.toRadians(180)), Math.toRadians(180))
+
+                .splineToSplineHeading(new Pose2d(-20, 10.75, Math.toRadians(180)), Math.toRadians(180))
+                .splineToSplineHeading(new Pose2d(-59, 11.125, Math.toRadians(180)), Math.toRadians(180))
+                .waitSeconds(3)
+                .setTangent(Math.toRadians(0))
+                .splineToSplineHeading(new Pose2d(0, 11, Math.toRadians(180)), Math.toRadians(0))
+                .splineToSplineHeading(new Pose2d(20, 11, Math.toRadians(225)), Math.toRadians(0))
+
+                .waitSeconds(1)
+                .strafeToSplineHeading(new Vector2d(28, 11), Math.toRadians(180))
+//                .setTangent(Math.toRadians(0))
+
+                .splineToSplineHeading(new Pose2d(
+                        41, 36, Math.toRadians(180)
+                ), Math.toRadians(90))
+
+//                .splineTo(new Vector2d(-59, 11.125), Math.toRadians(0))
+//                .waitSeconds(5)
+
+                .build();
+
         Action farMiddle = farBot.getDrive().actionBuilder(farStarting)
 
                 .strafeToConstantHeading(new Vector2d(-46, 35))
@@ -138,12 +167,17 @@ public class MeepMeepTesting {
                 .waitSeconds(2)
 
                 .setTangent(Math.toRadians(0))
-                .splineToSplineHeading(new Pose2d(-40, 58, Math.toRadians(180)), Math.toRadians(0))
+//                .splineToSplineHeading(new Pose2d(-40, 58, Math.toRadians(180)), Math.toRadians(0))
+                .splineToConstantHeading(
+                        new Vector2d(-40, 58),
+                        Math.toRadians(0)
+                )
                 .strafeTo(new Vector2d(0, 58))
-                .strafeToSplineHeading(new Vector2d(20, 58), Math.toRadians(135))
+                .strafeToSplineHeading(new Vector2d(28, 58), Math.toRadians(135))
                 .waitSeconds(1.5)
-                .setTangent(Math.toRadians(315))
-                .splineToSplineHeading(new Pose2d(40, 41, Math.toRadians(180)), Math.toRadians(0))
+                .strafeToLinearHeading(new Vector2d(38, 41), Math.toRadians(180))
+//                .setTangent(Math.toRadians(315))
+//                .splineToSplineHeading(new Pose2d(40, 41, Math.toRadians(180)), Math.toRadians(0))
 //                .strafeTo(new Vector2d(51, 41))
                 .waitSeconds(0.0001)
                 .strafeTo(new Vector2d(51, 43.25))
@@ -151,34 +185,14 @@ public class MeepMeepTesting {
 
                 .build();
 
-        Action closeMiddle = closeBot.getDrive().actionBuilder(closeStarting)
-                .strafeTo(new Vector2d(12, 31))
-                .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(new Pose2d(51, 36, Math.toRadians(180)), Math.toRadians(0))
-
-                .waitSeconds(servoWaitTime) // score
-                .setTangent(Math.toRadians(180))
-                .splineToSplineHeading(new Pose2d(20, 11, Math.toRadians(180)), Math.toRadians(180))
-
-                .splineToSplineHeading(new Pose2d(-20, 10.75, Math.toRadians(180)), Math.toRadians(180))
-                .splineToSplineHeading(new Pose2d(-59, 11.125, Math.toRadians(180)), Math.toRadians(180))
-                .waitSeconds(3)
-                .setTangent(Math.toRadians(0))
-                .splineToSplineHeading(new Pose2d(0, 11, Math.toRadians(180)), Math.toRadians(0))
-                .splineToSplineHeading(new Pose2d(20, 11, Math.toRadians(225)), Math.toRadians(0))
-//                .splineTo(new Vector2d(-59, 11.125), Math.toRadians(0))
-//                .waitSeconds(5)
-
-                .build();
-
-        closeBot.runAction(closeMiddle);
-//        farBot.runAction(farMiddle);
+//        closeBot.runAction(closeMiddle);
+        farBot.runAction(farMiddle);
 
         meepMeep.setBackground(MeepMeep.Background.FIELD_CENTERSTAGE_JUICE_DARK)
                 .setDarkMode(true)
                 .setBackgroundAlpha(0.95f)
-                .addEntity(closeBot)
-//                .addEntity(farBot)
+//                .addEntity(closeBot)
+                .addEntity(farBot)
                 .start();
     }
 }

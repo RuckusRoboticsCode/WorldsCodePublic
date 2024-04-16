@@ -72,16 +72,16 @@ public class Intake {
     }
 
     public Action moveRake(RakePositions rakePositions) {
-        this.rakePosition = rakePositions;
         return new Action() {
             boolean initialized = false;
 
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
                 if (!initialized) {
-                    rake.setPosition(rakePosition.position);
+                    rake.setPosition(rakePositions.position);
                     initialized = true;
                 }
+                rake.setPosition(rakePositions.position);
                 return false;
             }
         };
@@ -123,13 +123,14 @@ public class Intake {
             final double twoPixelTime = 0.175;
             final double detectedDistance = 1.0;
             final ElapsedTime sensorTimer = new ElapsedTime();
+            final ElapsedTime runTimer = new ElapsedTime();
 
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
                 if (!initialized) {
                     intakeMotor.setPower(intakeSpeed.power);
-                    timer.reset();
                     initialized = true;
+                    runTimer.reset();
                 }
 
                 if (intermittentVoltageSensor != null) {
@@ -145,7 +146,10 @@ public class Intake {
 
                 previouslyDetected = detected;
 
-                if (sensorTimer.seconds() > twoPixelTime || timer.seconds() > timeout) {
+                if (runTimer.seconds() > timeout) {
+                    return false;
+                }
+                if (sensorTimer.seconds() > twoPixelTime) {
                     return true;
                 } else {
                     intakeMotor.setPower(IntakeSpeeds.STOP.power);

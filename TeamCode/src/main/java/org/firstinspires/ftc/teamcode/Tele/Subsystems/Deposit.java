@@ -61,7 +61,7 @@ public class Deposit implements Subsystem {
 
     private final double DETECTED_THRESHOLD = 1.0;
 //    public static double DETECTED_TIME = 0.25;
-    public static double DETECTED_TIME = 0.175;
+    public static double DETECTED_TIME = 0.2;
 //    public static double ONE_PIXEL_TIME = 0.099;
     public static double ONE_PIXEL_TIME = 0.0785;
     private ElapsedTime timer = null;

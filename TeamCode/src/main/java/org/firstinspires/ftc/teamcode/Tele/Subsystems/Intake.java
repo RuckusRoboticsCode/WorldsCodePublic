@@ -18,7 +18,7 @@ public class Intake implements Subsystem {
 
     private enum IntakeSpeeds {
         SLOW_INTAKE(0.78),
-        MEDIUM_INTAKE(0.8),
+        MEDIUM_INTAKE(0.85),
         FAST_INTAKE(1.0),
         OUTTAKE(-1.0);
 
@@ -94,29 +94,15 @@ public class Intake implements Subsystem {
     public void update() {
         double power = 0.0;
         outtakeDetector.update();
-//        if (gamepadEx.getRightTrigger() > 0.5) {
-//            power = IntakeSpeeds.SLOW_INTAKE.power;
-//        } else if (gamepadEx.getRightTrigger() != 0) {
-//            power = IntakeSpeeds.MEDIUM_INTAKE.power;
-//        } else if (gamepadEx.getLeftTrigger() > 0.5) {
-//            power = IntakeSpeeds.OUTTAKE.power;
-//        } else if (outtakeDetector.wasJustTriggered()) {
-//            timer.reset();
-//        } else if (timer.seconds() < INTAKE_TIME) {
-//            power = IntakeSpeeds.FAST_INTAKE.power;
-//        } else if (timer.seconds() < OUTTAKE_TIME) {
-//            power = IntakeSpeeds.OUTTAKE.power;
-//        }
 
-        if (gamepadEx.getButton(Buttons.RIGHT_BUMPER) && !outtakeDetector.getCurrentValue()) {
-            power = IntakeSpeeds.MEDIUM_INTAKE.power;
-            power *= (12.0 / currentVoltage);
-        } else if (gamepadEx.getButton(Buttons.SQUARE) && !outtakeDetector.getCurrentValue()) {
+        if (gamepadEx.getButton(Buttons.RIGHT_BUMPER)) {
+            power = 1.0;
+        } else if (gamepadEx.getButton(Buttons.SQUARE)) {
             power = IntakeSpeeds.OUTTAKE.power;
         } else if (outtakeDetector.wasJustTriggered()) {
             timer.reset();
         } else if (timer.seconds() < INTAKE_TIME) {
-            power = IntakeSpeeds.FAST_INTAKE.power;
+            power = 1.0;
         } else if (timer.seconds() < OUTTAKE_TIME) {
             power = IntakeSpeeds.OUTTAKE.power;
         }

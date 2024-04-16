@@ -4,6 +4,7 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -37,7 +38,7 @@ public class Vision {
     public Vision(LinearOpModeEx linearOpModeEx, Util.AllianceColor allianceColor, boolean startingClose) {
 
         setupPropProcessor(linearOpModeEx, allianceColor, startingClose);
-        setupAprilTagProcessor();
+        setupAprilTagProcessor(linearOpModeEx);
 
         portal = new VisionPortal.Builder()
                 .setCamera(linearOpModeEx.hardwareMap.get(CameraName.class, "Webcam 1"))
@@ -81,15 +82,41 @@ public class Vision {
         propProcessor.setTelemetry(linearOpModeEx.telemetry);
     }
 
-    private void setupAprilTagProcessor() {
+    private void setupAprilTagProcessor(LinearOpModeEx linearOpModeEx) {
         aprilTagProcessor = new cAprilTagProcessor.Builder()
                 .setDrawAxes(false)
                 .setDrawTagID(false)
                 .setDrawCubeProjection(false)
                 .setDrawTagOutline(false)
+//                .setDrawAxes(true)
+//                .setDrawTagID(true)
+//                .setDrawCubeProjection(true)
+//                .setDrawTagOutline(true)
                 .setTagFamily(cAprilTagProcessor.TagFamily.TAG_36h11)
                 .setLensIntrinsics(Camera.fx, Camera.fy, Camera.cx, Camera.cy)
                 .build();
+
+        aprilTagProcessor.setDecimation(1);
+        aprilTagProcessor.setTelemetry(linearOpModeEx.telemetry);
+    }
+
+    public void addToDashboard(FtcDashboard dashboard) {
+        if (aprilTagProcessor != null) {
+            dashboard.startCameraStream(aprilTagProcessor, 0);
+        }
+    }
+
+    public void closePropProcessor() {
+        portal.setProcessorEnabled(propProcessor, false);
+        propProcessor.close();
+    }
+
+    public void closeAll() {
+        portal.stopLiveView();
+        portal.setProcessorEnabled(propProcessor, false);
+        portal.setProcessorEnabled(aprilTagProcessor, false);
+        portal.stopStreaming();
+        portal.close();
     }
 
     public PixelLocation getPixelLocation() {
@@ -103,11 +130,14 @@ public class Vision {
             final ElapsedTime timer = new ElapsedTime();
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-                ArrayList<AprilTagDetection> detections = aprilTagProcessor.getFreshDetections();
+                ArrayList<AprilTagDetection> detections = aprilTagProcessor.getDetections();
                 boolean backdropClear;
                 if (detections != null) {
+//                    telemetryPacket.put("Null?", "No");
+                    telemetryPacket.put("# April Tags Detected", detections.size());
                     backdropClear = (detections.size() == normalNumAprilTags);
                 } else {
+//                    telemetryPacket.put("Null?", "Yes");
                     backdropClear = false;
                 }
 
@@ -115,9 +145,7 @@ public class Vision {
                     timer.reset();
                 }
 
-                if (detections != null) {
-                    telemetryPacket.put("# April Tags Detected", detections.size());
-                }
+//                telemetryPacket.put("Time", timer.seconds());
                 telemetryPacket.put("Backdrop Clear", backdropClear);
                 return timer.seconds() < buffer;
             }

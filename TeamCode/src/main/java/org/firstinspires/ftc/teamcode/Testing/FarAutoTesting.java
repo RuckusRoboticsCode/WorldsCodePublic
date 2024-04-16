@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.Testing;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.teamcode.Auto.CloseAutonomousOpMode;
 import org.firstinspires.ftc.teamcode.Auto.FarAutonomousOpMode;
 import org.firstinspires.ftc.teamcode.Auto.Util;
 import org.firstinspires.ftc.teamcode.OpModes.LinearOpModeEx;
@@ -31,6 +32,7 @@ public class FarAutoTesting extends LinearOpModeEx {
     @Override
     public void runOpMode() throws InterruptedException {
         super.runOpMode();
+//        telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
 
         auto = new FarAutonomousOpMode(
                 this,
@@ -39,6 +41,10 @@ public class FarAutoTesting extends LinearOpModeEx {
                 path,
                 1
         );
+
+        while (opModeInInit()) {
+            telemetry.update();
+        }
 
         waitForStart();
 

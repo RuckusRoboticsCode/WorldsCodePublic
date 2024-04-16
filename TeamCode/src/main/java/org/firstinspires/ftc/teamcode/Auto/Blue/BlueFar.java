@@ -24,7 +24,7 @@ public class BlueFar extends LinearOpModeEx {
     public void runOpMode() throws InterruptedException {
         super.runOpMode();
 
-        defaultAuto = new FarAutonomousOpMode(this, Util.AllianceColor.BLUE, Util.Parking.CORNER, Util.Path.STAGE_DOOR);
+        defaultAuto = new FarAutonomousOpMode(this, Util.AllianceColor.BLUE);
 
         while (opModeInInit() && auto == null) {
             gamepadEx1.update();
@@ -92,15 +92,7 @@ public class BlueFar extends LinearOpModeEx {
 
         Prop.Location propLocation = auto.detectPropLocation();
 
-        Actions.runBlocking(auto.getPreLoad());
-        if (numCycles == 1) {
-            Actions.runBlocking(auto.getFirstCycle());
-            if (getRuntime() < 25) {
-                Actions.runBlocking(auto.getPark());
-            }
-        } else {
-            Actions.runBlocking(auto.getPark());
-        }
+        auto.runAll();
     }
 
 }

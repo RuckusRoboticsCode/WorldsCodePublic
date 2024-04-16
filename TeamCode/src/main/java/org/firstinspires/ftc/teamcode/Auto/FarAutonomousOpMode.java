@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.Auto;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -10,6 +11,7 @@ import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.ftc.Actions;
 
 import org.firstinspires.ftc.teamcode.Auto.Subsystems.Deposit;
 import org.firstinspires.ftc.teamcode.Auto.Subsystems.Intake;
@@ -64,15 +66,16 @@ public class FarAutonomousOpMode {
     private Action park;
     private Action firstCycle;
 
-    private final Action resetAction;
-    private final Action scorePreLoadAction;
+    private Action resetAction;
+    private Action scorePreLoadAction;
 
     public FarAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor, Parking parking, Path path, int numCycles) {
 
         this.parking = parking;
         this.allianceColor = allianceColor;
         this.path = path;
-        this.vision = new Vision(linearOpModeEx, allianceColor, true);
+        this.vision = new Vision(linearOpModeEx, allianceColor, false);
+        vision.addToDashboard(FtcDashboard.getInstance());
         this.numCycles = numCycles;
 
         linearSlides = new LinearSlides(linearOpModeEx);
@@ -91,13 +94,35 @@ public class FarAutonomousOpMode {
         linearSlides.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
         intake.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
 
+        buildCommonActions();
+        buildAll();
+    }
+
+    public FarAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor) {
+        this(linearOpModeEx, allianceColor, Parking.MIDDLE, Path.STAGE_DOOR, 0);
+    }
+
+    public void runAll() {
+        Actions.runBlocking(preLoad);
+        if (numCycles == 1) {
+            Actions.runBlocking(firstCycle);
+        }
+        Actions.runBlocking(park);
+    }
+
+    private void buildCommonActions() {
+        scoreAction = new SequentialAction(
+                deposit.flipGate(Deposit.GatePositions.OPEN),
+                new SleepAction(depositTime)
+        );
+
         resetAction = new SequentialAction(
+                new SleepAction(resetWaitTime),
                 new ParallelAction(
-                    linearSlides.moveTo(0),
-                    deposit.flipGate(Deposit.GatePositions.CLOSED),
-                    deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
+                        linearSlides.moveTo(-700),
+                        deposit.flipGate(Deposit.GatePositions.CLOSED)
                 ),
-                new SleepAction(resetWaitTime)
+                deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
         );
 
         scorePreLoadAction = new SequentialAction(
@@ -120,11 +145,11 @@ public class FarAutonomousOpMode {
                 intake.moveRake(Intake.RakePositions.LIFTED),
                 new SleepAction(depositTime),
                 new ParallelAction(
-                        intake.intakeTwo(Intake.IntakeSpeeds.MEDIUM_INTAKE, intakeTimeout),
+                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
                         drive.actionBuilder(
-                                new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
+                                        new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector,
-                                        new TranslationalVelConstraint(25),
+                                        new TranslationalVelConstraint(10),
                                         new ProfileAccelConstraint(-30, 30))
                                 .build()
                 )
@@ -139,11 +164,11 @@ public class FarAutonomousOpMode {
                 intake.moveRake(Intake.RakePositions.LIFTED),
                 new SleepAction(depositTime),
                 new ParallelAction(
-                        intake.intakeTwo(Intake.IntakeSpeeds.MEDIUM_INTAKE, intakeTimeout),
+                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
                         drive.actionBuilder(
                                         new Pose2d(BlueLocations.Poses.TRUSS_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.TRUSS_STACK.vector,
-                                        new TranslationalVelConstraint(25),
+                                        new TranslationalVelConstraint(10),
                                         new ProfileAccelConstraint(-30, 30))
                                 .build()
                 )
@@ -151,82 +176,22 @@ public class FarAutonomousOpMode {
 
         trussStackToWait = drive.actionBuilder(BlueLocations.Poses.TRUSS_STACK.pose, getPoseMap())
                 .setTangent(Math.toRadians(0))
-                .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_TRUSS_2.pose, Math.toRadians(0))
+                .splineToConstantHeading(BlueLocations.Poses.CYCLE_START_TRUSS_2.vector, Math.toRadians(0))
                 .strafeToConstantHeading(new Vector2d(0, BlueLocations.Poses.CYCLE_START_TRUSS.vector.y))
                 .strafeToSplineHeading(BlueLocations.Poses.CYCLE_START_TRUSS.vector, Math.toRadians(135))
                 .build();
 
         stageDoorStackToWait = drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_STACK.pose, getPoseMap())
-//                .strafeToConstantHeading(new Vector2d(0, BlueLocations.Poses.STAGE_DOOR_WAIT.vector.y))
-//                .strafeToSplineHeading(
-//                        BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(7, 0)),
-//                        Math.toRadians(225))
+                .afterTime(0.25, intake.runIntake(Intake.IntakeSpeeds.OUTTAKE, 1.5))
                 .setTangent(Math.toRadians(0))
                 .splineToSplineHeading(new Pose2d(
                         0, BlueLocations.Poses.STAGE_DOOR_WAIT.vector.y, Math.toRadians(180)
                 ), Math.toRadians(180))
                 .splineToSplineHeading(new Pose2d(
-                        BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(7, 0)),
+                        BlueLocations.Poses.STAGE_DOOR_WAIT.vector,
                         Math.toRadians(225)
                 ), Math.toRadians(180))
                 .build();
-
-        scoreAction = new SequentialAction(
-                deposit.flipGate(Deposit.GatePositions.OPEN),
-                new SleepAction(depositTime)
-        );
-
-        buildAll();
-    }
-
-    public FarAutonomousOpMode(LinearOpModeEx linearOpModeEx, AllianceColor allianceColor, Parking parking, Path path) {
-        this.parking = parking;
-        this.allianceColor = allianceColor;
-        this.path = path;
-        this.vision = new Vision(linearOpModeEx, allianceColor, true);
-
-        linearSlides = new LinearSlides(linearOpModeEx);
-        deposit = new Deposit(linearOpModeEx);
-        intake = new Intake(linearOpModeEx);
-
-        startingPose = BlueLocations.Poses.FAR_STARTING.pose;
-        if (allianceColor == AllianceColor.RED) {
-            startingPose = new Pose2d(
-                    new Vector2d(startingPose.position.x, -startingPose.position.y),
-                    startingPose.heading.inverse()
-            );
-        }
-
-        drive = new MecanumDrive(linearOpModeEx.hardwareMap, startingPose);
-        linearSlides.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
-        intake.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
-
-        resetAction = new SequentialAction(
-                new SleepAction(resetWaitTime),
-                new ParallelAction(
-                        linearSlides.moveTo(0),
-                        deposit.flipGate(Deposit.GatePositions.CLOSED)
-                ),
-                deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
-        );
-
-        scorePreLoadAction = new SequentialAction(
-                new ParallelAction(
-                    linearSlides.moveTo(preLoadHeight),
-                    deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE),
-                    drive.scoreBackdrop(
-                            allianceColor, vision::getPixelLocation, this::getStoredPropLocation
-                    )
-                ),
-                scoreAction
-        );
-
-        scoreAction = new SequentialAction(
-                deposit.flipGate(Deposit.GatePositions.OPEN),
-                new SleepAction(depositTime)
-        );
-
-        buildAll();
     }
 
     public Prop.Location detectPropLocation() {
@@ -238,6 +203,8 @@ public class FarAutonomousOpMode {
         if (numCycles != 0) {
             firstCycle = getTrajectory(firstCycleActions, propLocation);
         }
+
+//        vision.closePropProcessor();
 
         return propLocation;
     }
@@ -314,8 +281,20 @@ public class FarAutonomousOpMode {
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
-                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(7, 0)), Math.toRadians(225)), getPoseMap())
-                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.vector.plus(new Vector2d(-5, 0)), Math.toRadians(180))
+                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector, Math.toRadians(225)), getPoseMap())
+//                                .strafeToSplineHeading(
+//                                        BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180)
+//                                )
+                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.vector.plus(new Vector2d(-18, 0)), Math.toRadians(180))
+//                                .splineToSplineHeading(
+//                                        new Pose2d(38, BlueLocations.Poses.BACKDROP_LEFT.vector.y, Math.toRadians(180)), Math.toRadians(90)
+//                                )
+//                                .splineTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_LEFT.vector.y), Math.toRadians(90)
+//                                )
+//                                .strafeTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_LEFT.vector.y)
+//                                )
                                 .build(),
                         scorePreLoadAction
                 )
@@ -326,7 +305,7 @@ public class FarAutonomousOpMode {
                         drive.actionBuilder(startingPose, getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.SPIKE_MARK_MIDDLE_FAR.vector)
 
-                                .strafeToConstantHeading(new Vector2d(-54, 35))
+                                .strafeToConstantHeading(new Vector2d(-54, 40))
                                 .strafeToLinearHeading(new Vector2d(-54, BlueLocations.Poses.STAGE_DOOR_STACK.vector.y), Math.toRadians(180))
                                 .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
 
@@ -334,8 +313,20 @@ public class FarAutonomousOpMode {
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
-                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(7, 0)), Math.toRadians(225)), getPoseMap())
-                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector.plus(new Vector2d(-5, 0)), Math.toRadians(180))
+                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector, Math.toRadians(225)), getPoseMap())
+//                                .strafeToSplineHeading(
+//                                        BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180)
+//                                )
+                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector.plus(new Vector2d(-18, 0)), Math.toRadians(180))
+//                                .splineToSplineHeading(
+//                                        new Pose2d(38, BlueLocations.Poses.BACKDROP_MIDDLE.vector.y, Math.toRadians(180)), Math.toRadians(90)
+//                                )
+//                                .splineTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_LEFT.vector.y), Math.toRadians(90)
+//                                )
+//                                .strafeTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_MIDDLE.vector.y)
+//                                )
                                 .build(),
                         scorePreLoadAction
                 )
@@ -353,8 +344,20 @@ public class FarAutonomousOpMode {
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
-                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(7, 0)), Math.toRadians(225)), getPoseMap())
-                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector.plus(new Vector2d(-5, 0)), Math.toRadians(180))
+                        drive.actionBuilder(new Pose2d(BlueLocations.Poses.STAGE_DOOR_WAIT.vector, Math.toRadians(225)), getPoseMap())
+//                                .strafeToSplineHeading(
+//                                        BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180)
+//                                )
+                                .strafeToSplineHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector.plus(new Vector2d(-18, 0)), Math.toRadians(180))
+//                                .splineToSplineHeading(
+//                                        new Pose2d(38, BlueLocations.Poses.BACKDROP_RIGHT.vector.y, Math.toRadians(180)), Math.toRadians(90)
+//                                )
+//                                .splineTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_LEFT.vector.y), Math.toRadians(90)
+//                                )
+//                                .strafeTo(
+//                                        new Vector2d(38, BlueLocations.Poses.BACKDROP_RIGHT.vector.y)
+//                                )
                                 .build(),
                         scorePreLoadAction
                 )
@@ -542,12 +545,19 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_LEFT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)))
                                         .build(),
                                 resetAction
                         ),
-                        stageDoorFirstCycleIntakeAction,
+                        new ParallelAction(
+                                intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, 2.5),
+                                drive.actionBuilder(
+                                        new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)), Math.toRadians(180)),
+                                        getPoseMap())
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .build()
+                        ),
                         new ParallelAction(
                                 intake.runIntake(Intake.IntakeSpeeds.OUTTAKE, 1.5),
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_STACK.pose, getPoseMap())
@@ -558,7 +568,8 @@ public class FarAutonomousOpMode {
                         vision.waitForBackdropClear(),
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_WAIT.pose, getPoseMap())
-                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+//                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector, Math.toRadians(180))
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
@@ -572,12 +583,19 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_MIDDLE.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)))
                                         .build(),
                                 resetAction
                         ),
-                        stageDoorFirstCycleIntakeAction,
+                        new ParallelAction(
+                                intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, 2.5),
+                                drive.actionBuilder(
+                                        new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)), Math.toRadians(180)),
+                                        getPoseMap())
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .build()
+                        ),
                         new ParallelAction(
                                 intake.runIntake(Intake.IntakeSpeeds.OUTTAKE, 1.5),
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_STACK.pose, getPoseMap())
@@ -588,7 +606,8 @@ public class FarAutonomousOpMode {
                         vision.waitForBackdropClear(),
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_WAIT.pose, getPoseMap())
-                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+//                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector, Math.toRadians(180))
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
@@ -602,12 +621,19 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_RIGHT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)))
                                         .build(),
                                 resetAction
                         ),
-                        stageDoorFirstCycleIntakeAction,
+                        new ParallelAction(
+                                intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, 2.5),
+                                drive.actionBuilder(
+                                        new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(5, 0)), Math.toRadians(180)),
+                                        getPoseMap())
+                                        .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector)
+                                        .build()
+                        ),
                         new ParallelAction(
                                 intake.runIntake(Intake.IntakeSpeeds.OUTTAKE, 1.5),
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_STACK.pose, getPoseMap())
@@ -671,7 +697,7 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_MIDDLE.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_TRUSS.vector, Math.toRadians(180))
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_TRUSS.pose, Math.toRadians(180))
                                         .strafeToConstantHeading(BlueLocations.Poses.CYCLE_START_TRUSS_2.vector)
                                         .splineToSplineHeading(BlueLocations.Poses.TRUSS_STACK.pose, Math.toRadians(180))
                                         .build(),
@@ -691,7 +717,8 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.TRUSS_WAIT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(315))
-                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.pose, Math.toRadians(180))
+//                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.pose, Math.toRadians(180))
+                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_MIDDLE.pose, Math.toRadians(180))
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
@@ -705,7 +732,7 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_RIGHT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_TRUSS.vector, Math.toRadians(180))
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_TRUSS.pose, Math.toRadians(180))
                                         .strafeToConstantHeading(BlueLocations.Poses.CYCLE_START_TRUSS_2.vector)
                                         .splineToSplineHeading(BlueLocations.Poses.TRUSS_STACK.pose, Math.toRadians(180))
                                         .build(),
@@ -725,7 +752,8 @@ public class FarAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.TRUSS_WAIT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(315))
-                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.pose, Math.toRadians(180))
+//                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_LEFT.pose, Math.toRadians(180))
+                                        .splineToSplineHeading(BlueLocations.Poses.BACKDROP_MIDDLE.pose, Math.toRadians(180))
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
@@ -733,5 +761,9 @@ public class FarAutonomousOpMode {
                         scoreAction
                 )
         );
+    }
+
+    public void close() {
+        vision.closeAll();
     }
 }

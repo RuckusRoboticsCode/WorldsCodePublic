@@ -49,12 +49,12 @@ public final class ThreeDeadWheelLocalizer implements Localizer {
         // photon:
         par0.setDirection(DcMotorSimple.Direction.FORWARD);
         par1.setDirection(DcMotorSimple.Direction.REVERSE);
-        perp.setDirection(DcMotorSimple.Direction.REVERSE);
+        perp.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // normal:
 //        par0.setDirection(DcMotorSimple.Direction.REVERSE);
 //        par1.setDirection(DcMotorSimple.Direction.FORWARD);
-//        perp.setDirection(DcMotorSimple.Direction.FORWARD);
+//        perp.setDirection(DcMotorSimple.Direction.REVERSE);
 
         this.inPerTick = inPerTick;
 
