@@ -81,6 +81,7 @@ public class LinearSlides implements Subsystem {
 
     public void setTargetPosition(int targetPosition) {
         this.targetPosition = targetPosition;
+        pidfController.setTargetTolerance(targetPosition);
     }
 
     @Override
@@ -94,20 +95,18 @@ public class LinearSlides implements Subsystem {
         leftSlide.setDirection(DcMotorSimple.Direction.FORWARD);
         rightSlide.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        leftSlide.setCurrentAlert(6, CurrentUnit.AMPS);
+        leftSlide.setCurrentAlert(4.75, CurrentUnit.AMPS);
 
 //        intermittentVoltageSensor = new IntermittentVoltageSensor(hardwareMap, 1500);
 
-        if (pidfController == null) {
-            pidfController = new PIDFController(
-                    PIDF_COEFFICIENTS.kp.teleCoefficient,
-                    PIDF_COEFFICIENTS.ki.teleCoefficient,
-                    PIDF_COEFFICIENTS.kd.teleCoefficient,
-                    PIDF_COEFFICIENTS.kf.teleCoefficient
-            );
+        pidfController = new PIDFController(
+                PIDF_COEFFICIENTS.kp.teleCoefficient,
+                PIDF_COEFFICIENTS.ki.teleCoefficient,
+                PIDF_COEFFICIENTS.kd.teleCoefficient,
+                PIDF_COEFFICIENTS.kf.teleCoefficient
+        );
 
-            pidfController.setTargetTolerance(15);
-        }
+        pidfController.setTargetTolerance(15);
 
         read();
     }
@@ -119,17 +118,6 @@ public class LinearSlides implements Subsystem {
         if (gamepadEx == null) {
             return;
         }
-
-//        if (gamepadEx.wasJustPressed(Buttons.TRIANGLE)) {
-//            setTargetPosition(SLIDE_POSITIONS.HIGH.position);
-//            usePIDF = true;
-//        } else if (gamepadEx.wasJustPressed(Buttons.CROSS)) {
-//            setTargetPosition(SLIDE_POSITIONS.DOWN.position);
-//            usePIDF = true;
-//        } else if (gamepadEx.wasJustPressed(Buttons.CIRCLE)) {
-//            setTargetPosition(SLIDE_POSITIONS.HANGING.position);
-//            usePIDF = true;
-//        }
 
         if (gamepadEx.wasJustPressed(Buttons.CROSS)) {
             setTargetPosition(SLIDE_POSITIONS.DOWN.position);
@@ -160,11 +148,14 @@ public class LinearSlides implements Subsystem {
             if (power != 0.0) {
                 power *= (12.0 / currentVoltage);
             }
+            if (pidfController.atTarget()) {
+                usePIDF = false;
+            }
         } else {
             setTargetPosition(currentPosition);
             pidfController.setTargetPosition(currentPosition);
             power = pidfController.update(currentPosition);
-            if (currentPosition < 100 && targetPosition < 100 && (Math.abs(targetPosition - currentPosition) < 20 && targetPosition != 0)) {
+            if (currentPosition < 100 && targetPosition < 100) {
                 power = 0.0;
             }
         }
@@ -180,10 +171,12 @@ public class LinearSlides implements Subsystem {
             rightSlide.setPower(power);
 
             leftSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
             leftSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightSlide.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            setTargetPosition(0);
+            usePIDF = false;
         }
 
         leftSlide.setPower(power);
@@ -197,6 +190,8 @@ public class LinearSlides implements Subsystem {
             telemetry.addData("LS Target Position", targetPosition);
             telemetry.addData("LS Current Position", currentPosition);
             telemetry.addData("LS Power", power);
+            telemetry.addData("LS At Target", pidfController.atTarget());
+            telemetry.addData("LS Using PIDF", usePIDF);
         }
     }
 }

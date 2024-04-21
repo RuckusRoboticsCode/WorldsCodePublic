@@ -18,7 +18,7 @@ public class RedClose extends LinearOpModeEx {
     Util.Parking parking = null;
     boolean chosenCycles = false;
     int numCycles = 0;
-    double timeout = 25;
+    double timeout = 60;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -73,13 +73,39 @@ public class RedClose extends LinearOpModeEx {
                 }
 
             } else if (getRuntime() > timeout) {
+                telemetry.clearAll();
+                telemetry.update();
                 break;
             } else {
                 auto = new CloseAutonomousOpMode(this, Util.AllianceColor.RED, parking, path, numCycles);
+
+                telemetry.clearAll();
+                telemetry.addData("Parking",
+                        parking == Util.Parking.MIDDLE ? "Middle" : "Corner"
+                );
+                telemetry.addData("Num Cycles", numCycles);
+                if (numCycles == 1) {
+                    telemetry.addData("Path",
+                            path == Util.Path.STAGE_DOOR ? "Stagedoor" : "Truss"
+                    );
+                }
+
                 break;
             }
             telemetry.update();
         }
+
+        telemetry.clearAll();
+        telemetry.addData("Parking",
+                parking == Util.Parking.MIDDLE ? "Middle" : "Corner"
+        );
+        telemetry.addData("Num Cycles", numCycles);
+        if (numCycles == 1) {
+            telemetry.addData("Path",
+                    path == Util.Path.STAGE_DOOR ? "Stagedoor" : "Truss"
+            );
+        }
+        telemetry.update();
 
         waitForStart();
         resetRuntime();

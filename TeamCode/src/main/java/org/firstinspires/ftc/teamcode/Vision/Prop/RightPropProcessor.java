@@ -27,8 +27,8 @@ public class RightPropProcessor extends PropProcessor implements CameraStreamSou
 	private Mat highMat = new Mat();
 	private Mat lowMat = new Mat();
 	private Mat finalMat = new Mat();
-	private final double middleThreshold = 0.0375;
-	private final double rightThreshold = 0.05;
+	private final double middleThreshold = 0.1;
+	private final double rightThreshold = 0.1;
 	Telemetry telemetry;
 
 	Prop.Location propLocation;

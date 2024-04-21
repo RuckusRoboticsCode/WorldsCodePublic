@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.Auto.Subsystems;
 
 import androidx.annotation.NonNull;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -11,6 +12,7 @@ import org.firstinspires.ftc.teamcode.Helper.Caching.CachingServo;
 import org.firstinspires.ftc.teamcode.OpModes.LinearOpModeEx;
 import org.firstinspires.ftc.teamcode.Tele.Subsystems.HardwareNames;
 
+@Config
 public class Deposit {
 
      public enum DepositPositions {
@@ -27,8 +29,8 @@ public class Deposit {
     }
 
      public enum GatePositions {
-        CLOSED(0.44),
-        OPEN(0.35);
+        CLOSED(0.45),
+        OPEN(0.33);
 
         final double gatePos;
 
@@ -74,18 +76,22 @@ public class Deposit {
                 if (!initialized) {
                     gate.setPosition(gatePosition.gatePos);
                     initialized = true;
+                    return true;
                 }
                 return false;
             }
         };
     }
 
+//    public static double delay = 0.099;
     public Action dropOnePixel() {
         return new Action() {
             boolean initialized = false;
             final ElapsedTime timer = new ElapsedTime();
 //            final double delay = 0.099;
-            final double delay = 0.0785;
+//            final double delay = 0.0785;
+//            final double delay = 0.13;
+            final double delay = 0.083;
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
                 if (!initialized) {
@@ -96,9 +102,9 @@ public class Deposit {
 
                 if (timer.seconds() > delay) {
                     gate.setPosition(GatePositions.CLOSED.gatePos);
-                    return true;
+                    return false;
                 }
-                return false;
+                return true;
             }
         };
     }

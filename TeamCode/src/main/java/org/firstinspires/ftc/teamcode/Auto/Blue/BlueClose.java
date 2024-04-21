@@ -18,7 +18,7 @@ public class BlueClose extends LinearOpModeEx {
     Util.Parking parking = null;
     boolean chosenCycles = false;
     int numCycles = 0;
-    double timeout = 25;
+    double timeout = 60;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -55,7 +55,7 @@ public class BlueClose extends LinearOpModeEx {
                 }
 
                 if (numCycles < 0) numCycles = 0;
-                if (numCycles > 2) numCycles = 2;
+                if (numCycles > 1) numCycles = 1;
 
                 if (gamepadEx1.wasJustPressed(Buttons.TRIANGLE) || gamepadEx2.wasJustPressed(Buttons.TRIANGLE)) {
                     chosenCycles = true;
@@ -73,13 +73,40 @@ public class BlueClose extends LinearOpModeEx {
                 }
 
             } else if (getRuntime() > timeout) {
+                telemetry.clearAll();
+                telemetry.update();
                 break;
             } else {
+                telemetry.clearAll();
+                telemetry.addData("Parking",
+                        parking == Util.Parking.MIDDLE ? "Middle" : "Corner"
+                        );
+                telemetry.addData("Num Cycles", numCycles);
+                if (numCycles == 1) {
+                    telemetry.addData("Path",
+                            path == Util.Path.STAGE_DOOR ? "Stagedoor" : "Truss"
+                            );
+                }
+
+                telemetry.update();
+
                 auto = new CloseAutonomousOpMode(this, Util.AllianceColor.BLUE, parking, path, numCycles);
                 break;
             }
             telemetry.update();
         }
+
+        telemetry.clearAll();
+        telemetry.addData("Parking",
+                parking == Util.Parking.MIDDLE ? "Middle" : "Corner"
+        );
+        telemetry.addData("Num Cycles", numCycles);
+        if (numCycles == 1) {
+            telemetry.addData("Path",
+                    path == Util.Path.STAGE_DOOR ? "Stagedoor" : "Truss"
+            );
+        }
+        telemetry.update();
 
         waitForStart();
         resetRuntime();

@@ -102,9 +102,10 @@ public final class MecanumDrive {
 //        public double axialVelGain = 1.5;
 //        public double lateralVelGain = 0.5;
 //        public double headingVelGain = 0.0; // shared with turn
-        public double axialGain = 5;
+//        public double axialGain = 5;
+        public double axialGain = 4;
         public double lateralGain = 3.5;
-        public double headingGain = 3; // shared with turn
+        public double headingGain = 4; // shared with turn
 
         public double axialVelGain = 3.5;
         public double lateralVelGain = 0.5;
@@ -487,13 +488,13 @@ public final class MecanumDrive {
         Twist2dDual<Time> twist = localizer.update();
         pose = pose.plus(twist.value());
 
-//        if (IMU_READ_TIME != 0 &&
-//                imuTimer.seconds() > IMU_READ_TIME &&
-//                localizer.getClass() == ThreeDeadWheelLocalizer.class &&
-//                Math.abs(twist.velocity().angVel.value()) < Math.toRadians(45)) {
-//            pose = new Pose2d(pose.position, imuControl.getHeadingRad());
-//            imuTimer.reset();
-//        }
+        if (IMU_READ_TIME != 0 &&
+                imuTimer.seconds() > IMU_READ_TIME &&
+                localizer.getClass() == ThreeDeadWheelLocalizer.class &&
+                Math.abs(twist.velocity().angVel.value()) < Math.toRadians(45)) {
+            pose = new Pose2d(pose.position, imuControl.getHeadingRad());
+            imuTimer.reset();
+        }
 
         poseHistory.add(pose);
         while (poseHistory.size() > 100) {
@@ -594,7 +595,7 @@ public final class MecanumDrive {
 
         return new Action() {
             HeadingPIDFController headingController = new HeadingPIDFController(-0.7 * 0.9, 0, 0.000015);
-            PIDFController axialController = new PIDFController(0.1 * 0.8, 0, 0.00002);
+            PIDFController axialController = new PIDFController(0.1 * 0.95, 0, 0.000035);
             PIDFController lateralController = new PIDFController(0.16, 0, 0.00002);
 
             final double axialTolerance = 0.75;
@@ -602,7 +603,7 @@ public final class MecanumDrive {
             final double headingTolerance = Math.toDegrees(5);
 
             final double timeout = 5.0;
-            final double positionOffset = 2.0;
+            final double positionOffset = 2.25;
             final ElapsedTime timer = new ElapsedTime();
 
             boolean initialized = false;
@@ -637,14 +638,14 @@ public final class MecanumDrive {
                         backdropPosition = new Vector2d(backdropPosition.x, -backdropPosition.y);
                     }
 
-                    if (pixelLocationSupplier.get() != PixelLocation.RIGHT) {
+                    if (pixelLocationSupplier.get() == PixelLocation.RIGHT) {
                         targetPose = new Pose2d(
-                                backdropPosition.plus(new Vector2d(-3, positionOffset)),
+                                backdropPosition.plus(new Vector2d(-1.75, positionOffset)),
                                 Math.toRadians(180)
                         );
                     } else {
                         targetPose = new Pose2d(
-                                backdropPosition.plus(new Vector2d(-3, -positionOffset)),
+                                backdropPosition.plus(new Vector2d(-1.75, -positionOffset)),
                                 Math.toRadians(180)
                         );
                     }
@@ -694,7 +695,8 @@ public final class MecanumDrive {
 
                     Drawing.drawRobot(
                             telemetryPacket.fieldOverlay(),
-                            targetPose
+                            targetPose,
+                            Drawing.Colors.BLUE
                     );
 
                     Drawing.drawRobot(

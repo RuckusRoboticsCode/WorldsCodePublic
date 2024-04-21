@@ -32,8 +32,8 @@ public class Deposit implements Subsystem {
     }
 
     private enum GatePositions {
-        CLOSED(0.44),
-        OPEN(0.35);
+        CLOSED(0.45),
+        OPEN(0.33);
 
         final double gatePos;
 
@@ -63,7 +63,8 @@ public class Deposit implements Subsystem {
 //    public static double DETECTED_TIME = 0.25;
     public static double DETECTED_TIME = 0.2;
 //    public static double ONE_PIXEL_TIME = 0.099;
-    public static double ONE_PIXEL_TIME = 0.0785;
+    public static double ONE_PIXEL_TIME = 0.08;
+//    public static double ONE_PIXEL_TIME = 0.128;
     private ElapsedTime timer = null;
     private ElapsedTime outtakeTimer = null;
     private ElapsedTime detectionTimer = null;
@@ -174,6 +175,11 @@ public class Deposit implements Subsystem {
         depositLeft.setPosition(depositPosition.leftPos);
         depositRight.setPosition(depositPosition.rightPos);
         lastTime = closeGateTimer.seconds();
+
+        if (telemetry != null) {
+            telemetry.addData("Should Outtake", shouldOuttake);
+            telemetry.addData("Sensor Just Triggered", sensorDetector.wasJustTriggered());
+        }
     }
 
     private void updateColorSensor() {

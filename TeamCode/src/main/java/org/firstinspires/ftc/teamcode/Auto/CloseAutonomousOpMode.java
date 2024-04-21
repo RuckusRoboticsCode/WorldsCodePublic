@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.Auto;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -72,6 +73,7 @@ public class CloseAutonomousOpMode {
         this.parking = parking;
         this.allianceColor = allianceColor;
         this.vision = new Vision(linearOpModeEx, allianceColor, true);
+        vision.addToDashboard(FtcDashboard.getInstance());
         this.path = path;
         this.numCycles = numCycles;
 
@@ -80,14 +82,25 @@ public class CloseAutonomousOpMode {
         intake = new Intake(linearOpModeEx);
 
         startingPose = BlueLocations.Poses.CLOSE_STARTING.pose;
+//        if (allianceColor == AllianceColor.RED) {
+//            startingPose = new Pose2d(
+//                    BlueLocations.Poses.CLOSE_STARTING.vector.x,
+//                    -BlueLocations.Poses.CLOSE_STARTING.vector.y,
+//                    BlueLocations.Poses.CLOSE_STARTING.pose.heading.inverse().toDouble()
+//            );
+//        }
         if (allianceColor == AllianceColor.RED) {
-            startingPose = new Pose2d(
-                    new Vector2d(startingPose.position.x, -startingPose.position.y),
-                    startingPose.heading.inverse()
-            );
+            drive = new MecanumDrive(linearOpModeEx.hardwareMap,
+                        new Pose2d(
+                                startingPose.position.x,
+                                -startingPose.position.y,
+                                startingPose.heading.inverse().toDouble()
+                        )
+                    );
+        } else {
+            drive = new MecanumDrive(linearOpModeEx.hardwareMap, startingPose);
         }
 
-        drive = new MecanumDrive(linearOpModeEx.hardwareMap, startingPose);
         linearSlides.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
         intake.setIntermittentVoltageSensor(drive.getIntermittentVoltageSensor());
 
@@ -105,10 +118,11 @@ public class CloseAutonomousOpMode {
                 new SleepAction(depositTime)
         );
 
-        resetAction = new SequentialAction(
+        resetAction =
+        new SequentialAction(
                 new SleepAction(resetWaitTime),
                 new ParallelAction(
-                        linearSlides.moveTo(0),
+                        linearSlides.moveTo(-1000),
                         deposit.flipGate(Deposit.GatePositions.CLOSED)
                 ),
                 deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
@@ -123,11 +137,12 @@ public class CloseAutonomousOpMode {
                 intake.moveRake(Intake.RakePositions.LIFTED),
                 new SleepAction(depositTime),
                 new ParallelAction(
-                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
+//                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, intakeTimeout),
+                        intake.intakeTwo(Intake.IntakeSpeeds.FAST_INTAKE, 4.5),
                         drive.actionBuilder(
                                         new Pose2d(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(rakePullDistance, 0)), Math.toRadians(180)), getPoseMap())
                                 .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector,
-                                        new TranslationalVelConstraint(25),
+                                        new TranslationalVelConstraint(10),
                                         new ProfileAccelConstraint(-30, 30))
                                 .build()
                 )
@@ -156,7 +171,7 @@ public class CloseAutonomousOpMode {
                 intake.runIntake(Intake.IntakeSpeeds.OUTTAKE, 1.5),
                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_STACK.pose, getPoseMap())
                         .strafeToConstantHeading(new Vector2d(0, BlueLocations.Poses.STAGE_DOOR_WAIT.vector.y))
-                        .strafeToSplineHeading(BlueLocations.Poses.STAGE_DOOR_WAIT.vector, Math.toRadians(225))
+                        .strafeToSplineHeading(BlueLocations.Poses.STAGE_DOOR_WAIT.vector, Math.toRadians(220))
                         .build()
         );
 
@@ -253,9 +268,10 @@ public class CloseAutonomousOpMode {
     }
 
     private PoseMap getPoseMap() {
-        return allianceColor == AllianceColor.RED ?
-                pose -> new Pose2dDual<>(pose.position.x, pose.position.y.unaryMinus(), pose.heading.inverse()) :
-                pose -> new Pose2dDual<>(pose.position.x, pose.position.y, pose.heading);
+        if (allianceColor == AllianceColor.RED) {
+            return pose -> new Pose2dDual<>(pose.position.x, pose.position.y.unaryMinus(), pose.heading.inverse());
+        }
+        return pose -> pose;
     }
 
     private void buildPreLoad() {
@@ -275,28 +291,38 @@ public class CloseAutonomousOpMode {
                                 )
 
                                 .splineToLinearHeading(
-                                        BlueLocations.Poses.BACKDROP_LEFT.pose,
+                                        new Pose2d(
+                                                BlueLocations.Poses.BACKDROP_LEFT.vector.plus(new Vector2d(1.25, 0.25)),
+                                                BlueLocations.Poses.BACKDROP_LEFT.pose.heading.toDouble()
+                                        ),
                                         Math.toRadians(0)
                                 )
                                 .afterTime(0, deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE))
                                 .build(),
-                        scoreAction
+//                        scoreAction
+                        deposit.flipGate(Deposit.GatePositions.OPEN),
+                        new SleepAction(depositTime)
                 )
         );
 
         preLoadActions.add(
                 new SequentialAction(
                         drive.actionBuilder(startingPose, getPoseMap())
-                                .strafeTo(BlueLocations.Poses.SPIKE_MARK_MIDDLE_CLOSE.vector)
+                                .strafeTo(BlueLocations.Poses.SPIKE_MARK_MIDDLE_CLOSE.vector.plus(new Vector2d(-2, 0)))
                                 .setTangent(Math.toRadians(90))
                                 .afterTime(0, linearSlides.moveTo(preLoadHeight))
                                 .splineToLinearHeading(
-                                        BlueLocations.Poses.BACKDROP_MIDDLE.pose,
+                                        new Pose2d(
+                                                BlueLocations.Poses.BACKDROP_MIDDLE.vector.plus(new Vector2d(1.5, 0.5)),
+                                                BlueLocations.Poses.BACKDROP_MIDDLE.pose.heading.toDouble()
+                                        ),
                                         Math.toRadians(0)
                                 )
                                 .afterTime(0, deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE))
                                 .build(),
-                        scoreAction
+//                        scoreAction
+                        deposit.flipGate(Deposit.GatePositions.OPEN),
+                        new SleepAction(depositTime)
                 )
         );
 
@@ -308,12 +334,17 @@ public class CloseAutonomousOpMode {
                                 .afterTime(0, linearSlides.moveTo(preLoadHeight))
                                 .setTangent(Math.toRadians(45))
                                 .splineToLinearHeading(
-                                        BlueLocations.Poses.BACKDROP_RIGHT.pose,
+                                        new Pose2d(
+                                                BlueLocations.Poses.BACKDROP_RIGHT.vector.plus(new Vector2d(1.5, -0.5)),
+                                                BlueLocations.Poses.BACKDROP_RIGHT.pose.heading.toDouble()
+                                        ),
                                         Math.toRadians(0)
                                 )
                                 .afterTime(0, deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE))
                                 .build(),
-                        scoreAction
+//                        scoreAction
+                        deposit.flipGate(Deposit.GatePositions.OPEN),
+                        new SleepAction(depositTime)
                 )
         );
     }
@@ -336,6 +367,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(44, 23), Math.toRadians(270))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_MIDDLE.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -347,6 +381,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(44, 23), Math.toRadians(270))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_MIDDLE.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -358,6 +395,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(44, 23), Math.toRadians(270))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_MIDDLE.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -374,6 +414,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(42, 49), Math.toRadians(90))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_CORNER.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -385,6 +428,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(42, 49), Math.toRadians(90))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_CORNER.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -396,6 +442,9 @@ public class CloseAutonomousOpMode {
                             .setTangent(Math.toRadians(180))
                             .splineToConstantHeading(new Vector2d(42, 49), Math.toRadians(90))
                             .splineToConstantHeading(BlueLocations.Poses.PARKING_CORNER.vector, Math.toRadians(0))
+//                            .strafeToConstantHeading(
+//                                    BlueLocations.Poses.PARKING_MIDDLE.vector.plus(new Vector2d(-0.25, -6))
+//                            )
                             .build(),
                     resetAction
                 )
@@ -414,23 +463,38 @@ public class CloseAutonomousOpMode {
         // Blue: left = 0
         // Red: right = 0
 
+        final double stackOffset = -1.75;
+
         firstCycleActions.add(
                 new SequentialAction(
                         new ParallelAction(
                             drive.actionBuilder(BlueLocations.Poses.BACKDROP_LEFT.pose, getPoseMap())
                                     .setTangent(Math.toRadians(180))
-                                    .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
-                                    .splineToSplineHeading(BlueLocations.Poses.STAGE_DOOR_STACK.pose, Math.toRadians(180))
+                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+                                    .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(0, stackOffset)))
+//                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
+//                                    .splineToSplineHeading(BlueLocations.Poses.STAGE_DOOR_STACK.pose, Math.toRadians(180))
                                     .build(),
-                            resetAction
+//                            resetAction
+                                new SequentialAction(
+                                        new SleepAction(resetWaitTime),
+                                        new ParallelAction(
+                                                linearSlides.moveTo(-1000),
+                                                deposit.flipGate(Deposit.GatePositions.CLOSED)
+                                        ),
+                                        deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
+                                )
                         ),
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_WAIT.pose, getPoseMap())
-                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+//                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+                                        .strafeToLinearHeading(
+                                                BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(10, 0)), Math.toRadians(180)
+                                        )
+                                        .strafeToConstantHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector)
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
@@ -443,24 +507,40 @@ public class CloseAutonomousOpMode {
                 new SequentialAction(
                         new ParallelAction(
                             drive.actionBuilder(BlueLocations.Poses.BACKDROP_MIDDLE.pose, getPoseMap())
+//                                    .setTangent(Math.toRadians(180))
+//                                    .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
+//                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
+//                                    .splineToSplineHeading(BlueLocations.Poses.STAGE_DOOR_STACK.pose, Math.toRadians(180))
                                     .setTangent(Math.toRadians(180))
-                                    .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
-                                    .splineToSplineHeading(BlueLocations.Poses.STAGE_DOOR_STACK.pose, Math.toRadians(180))
+                                    .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+                                    .strafeToConstantHeading(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(0, stackOffset)))
                                     .build(),
-                            resetAction
+//                            resetAction
+                                new SequentialAction(
+                                        new SleepAction(resetWaitTime),
+                                        new ParallelAction(
+                                                linearSlides.moveTo(-1000),
+                                                deposit.flipGate(Deposit.GatePositions.CLOSED)
+                                        ),
+                                        deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
+                                )
                         ),
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_WAIT.pose, getPoseMap())
-                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+//                                        .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_RIGHT.vector, Math.toRadians(180))
+                                        .splineToLinearHeading(
+                                                BlueLocations.Poses.BACKDROP_MIDDLE.pose, Math.toRadians(0)
+                                        )
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
                         ),
-                        scoreAction
+//                        scoreAction
+                        deposit.flipGate(Deposit.GatePositions.OPEN),
+                        new SleepAction(depositTime)
                 )
         );
 
@@ -469,23 +549,36 @@ public class CloseAutonomousOpMode {
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.BACKDROP_RIGHT.pose, getPoseMap())
                                         .setTangent(Math.toRadians(180))
-                                        .splineTo(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.vector, Math.toRadians(180))
-                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
-                                        .splineToSplineHeading(BlueLocations.Poses.STAGE_DOOR_STACK.pose, Math.toRadians(180))
+                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR.pose, Math.toRadians(180))
+//                                        .splineToSplineHeading(BlueLocations.Poses.CYCLE_START_STAGE_DOOR_2.pose, Math.toRadians(180))
+                                        .strafeTo(BlueLocations.Poses.STAGE_DOOR_STACK.vector.plus(new Vector2d(0, stackOffset)))
                                         .build(),
-                                resetAction
+//                                resetAction
+                                new SequentialAction(
+                                        new SleepAction(resetWaitTime),
+                                        new ParallelAction(
+                                                linearSlides.moveTo(-1000),
+                                                deposit.flipGate(Deposit.GatePositions.CLOSED)
+                                        ),
+                                        deposit.moveDeposit(Deposit.DepositPositions.INTAKE)
+                                )
                         ),
                         stageDoorFirstCycleIntakeAction,
                         stageDoorStackToWait,
                         vision.waitForBackdropClear(),
                         new ParallelAction(
                                 drive.actionBuilder(BlueLocations.Poses.STAGE_DOOR_WAIT.pose, getPoseMap())
+                                        .strafeToConstantHeading(
+                                                BlueLocations.Poses.STAGE_DOOR_WAIT.vector.plus(new Vector2d(8, 0))
+                                        )
                                         .strafeToLinearHeading(BlueLocations.Poses.BACKDROP_MIDDLE.vector, Math.toRadians(180))
                                         .build(),
                                 linearSlides.moveTo(firstCycleHeight),
                                 deposit.moveDeposit(Deposit.DepositPositions.OUTTAKE)
                         ),
-                        scoreAction
+//                        scoreAction
+                        deposit.flipGate(Deposit.GatePositions.OPEN),
+                        new SleepAction(depositTime)
                 )
         );
     }

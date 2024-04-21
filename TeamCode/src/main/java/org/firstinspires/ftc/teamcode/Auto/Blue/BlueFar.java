@@ -61,7 +61,7 @@ public class BlueFar extends LinearOpModeEx {
                     chosenCycles = true;
                 }
 
-            } else if (numCycles > 0 && path == null) {
+            } else if (path == null) {
                 telemetry.clearAll();
                 telemetry.addLine("Would you like to go through stage door");
                 telemetry.addLine("Press (Y/Δ) for yes, (B/O) for no");
@@ -73,9 +73,22 @@ public class BlueFar extends LinearOpModeEx {
                 }
 
             } else if (getRuntime() > timeout) {
+                telemetry.clearAll();
+                telemetry.update();
                 break;
             } else {
                 auto = new FarAutonomousOpMode(this, Util.AllianceColor.BLUE, parking, path, numCycles);
+
+                telemetry.clearAll();
+                telemetry.addData("Parking",
+                        parking == Util.Parking.MIDDLE ? "Middle" : "Corner"
+                );
+                telemetry.addData("Num Cycles", numCycles);
+                telemetry.addData("Path",
+                        path == Util.Path.STAGE_DOOR ? "Stagedoor" : "Truss"
+                );
+                telemetry.update();
+
                 break;
             }
             telemetry.update();

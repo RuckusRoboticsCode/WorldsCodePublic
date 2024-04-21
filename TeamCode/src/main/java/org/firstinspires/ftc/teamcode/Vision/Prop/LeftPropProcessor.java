@@ -29,8 +29,8 @@ public class LeftPropProcessor extends PropProcessor implements CameraStreamSour
 	private final Mat lowMat = new Mat();
 	private final Mat finalMat = new Mat();
 
-	private final double middleThreshold = 0.0375;
-	private final double leftThreshold = 0.05;
+	private final double middleThreshold = 0.1;
+	private final double leftThreshold = 0.1;
 	private Telemetry telemetry;
 
 	private Prop.Location propLocation;

@@ -9,7 +9,7 @@ public class BlueLocations {
     private final static double backdropX = 52;
     private final static double stackX = -58.75;
     private final static double stageDoorStackY = 10.75;
-    private final static double trussY = 58;
+    private final static double trussY = 59.25;
 
     public enum Poses {
         CLOSE_STARTING(new Pose2d(15, startingY, Math.toRadians(90))),
@@ -19,8 +19,8 @@ public class BlueLocations {
         SPIKE_MARK_MIDDLE_CLOSE(new Pose2d(12, 33, Math.toRadians(90))),
         SPIKE_MARK_RIGHT_CLOSE(new Pose2d(5.5, 37, 0)),
 
-        SPIKE_MARK_LEFT_FAR(new Pose2d(-27, 35, 0)),
-        SPIKE_MARK_MIDDLE_FAR(new Pose2d(-33.5, 33, Math.toRadians(90))),
+        SPIKE_MARK_LEFT_FAR(new Pose2d(-28.5, 35, 0)),
+        SPIKE_MARK_MIDDLE_FAR(new Pose2d(-34.5, 33, Math.toRadians(90))),
         SPIKE_MARK_RIGHT_FAR(new Pose2d(-47, 37, Math.toRadians(90))),
 
         BACKDROP_LEFT(new Pose2d(backdropX, 41.41, Math.toRadians(180))),

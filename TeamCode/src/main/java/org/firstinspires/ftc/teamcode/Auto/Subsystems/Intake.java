@@ -120,7 +120,9 @@ public class Intake {
             boolean initialized = false;
 
             boolean previouslyDetected = false;
-            final double twoPixelTime = 0.175;
+            boolean detected = false;
+//            final double twoPixelTime = 0.25;
+            final double twoPixelTime = 0.5;
             final double detectedDistance = 1.0;
             final ElapsedTime sensorTimer = new ElapsedTime();
             final ElapsedTime runTimer = new ElapsedTime();
@@ -129,32 +131,26 @@ public class Intake {
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
                 if (!initialized) {
                     intakeMotor.setPower(intakeSpeed.power);
-                    initialized = true;
                     runTimer.reset();
+                    sensorTimer.reset();
+                    detected = false;
+                    previouslyDetected = false;
+                    initialized = true;
+                    return true;
                 }
 
-                if (intermittentVoltageSensor != null) {
-                    double power = intakeSpeed.power * (12.0 / intermittentVoltageSensor.getVoltage());
-                    intakeMotor.setPower(power);
-                }
-
-                boolean detected = sensor.getDistance(DistanceUnit.INCH) < detectedDistance;
-//                boolean detected = false;
+                detected = sensor.getDistance(DistanceUnit.INCH) < detectedDistance;
                 if (!previouslyDetected && detected) {
                     sensorTimer.reset();
+//                    return true;
                 }
 
-                previouslyDetected = detected;
-
-                if (runTimer.seconds() > timeout) {
-                    return false;
-                }
-                if (sensorTimer.seconds() > twoPixelTime) {
-                    return true;
-                } else {
+                if (sensorTimer.seconds() > twoPixelTime || runTimer.seconds() > timeout) {
                     intakeMotor.setPower(IntakeSpeeds.STOP.power);
                     return false;
                 }
+                previouslyDetected = detected;
+                return true;
             }
         };
     }

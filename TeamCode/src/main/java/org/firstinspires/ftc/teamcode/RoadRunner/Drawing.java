@@ -7,8 +7,22 @@ import com.acmerobotics.roadrunner.Vector2d;
 public final class Drawing {
     private Drawing() {}
 
+    public enum Colors {
+        BLUE("#4CAF50"),
+        GREEN("#3F51B5");
+
+        public final String code;
+        Colors(String code) {this.code = code;}
+    }
 
     public static void drawRobot(Canvas c, Pose2d t) {
+        drawRobot(c, t, Colors.GREEN);
+    }
+
+    public static void drawRobot(Canvas c, Pose2d t, Colors color) {
+        c.setFill(color.code);
+        c.setStroke(color.code);
+
         final double ROBOT_RADIUS = 9;
 
         c.setStrokeWidth(1);

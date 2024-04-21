@@ -40,9 +40,16 @@ public class LinearSlides {
         leftSlide.setDirection(DcMotorSimple.Direction.FORWARD);
         rightSlide.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        leftSlide.setCurrentAlert(6, CurrentUnit.AMPS);
+        leftSlide.setCurrentAlert(4.25, CurrentUnit.AMPS);
 
-        controller = new PIDFController(0.0078 * 1.1, 0, 0.00035, 0.1);
+//        controller = new PIDFController(0.0078 * 1.1, 0, 0.00035, 0.1);
+        controller = new PIDFController(
+                0.8 * org.firstinspires.ftc.teamcode.Tele.Subsystems.LinearSlides.PIDF_COEFFICIENTS.kp.teleCoefficient,
+                0.8 * org.firstinspires.ftc.teamcode.Tele.Subsystems.LinearSlides.PIDF_COEFFICIENTS.ki.teleCoefficient,
+                0.8 * org.firstinspires.ftc.teamcode.Tele.Subsystems.LinearSlides.PIDF_COEFFICIENTS.kd.teleCoefficient,
+                org.firstinspires.ftc.teamcode.Tele.Subsystems.LinearSlides.PIDF_COEFFICIENTS.kf.teleCoefficient
+        );
+
         controller.setTargetTolerance(20);
     }
 
@@ -67,8 +74,10 @@ public class LinearSlides {
                     power *= (12.0 / intermittentVoltageSensor.getVoltage());
                 }
 
-                if (leftSlide.isOverCurrent()) {
-                    controller.setTargetTolerance(0);
+                if (leftSlide.isOverCurrent() && currentPosition < 150) {
+                    controller.setTargetPosition(0);
+                    telemetryPacket.put("Linear Slides Target", 0);
+                    telemetryPacket.put("Linear Slides Current", currentPosition);
 
                     leftSlide.setPower(0);
                     rightSlide.setPower(0);

@@ -25,9 +25,9 @@ public class Tele extends OpModeEx {
     @Override
     public void init() {
         super.init();
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         makeHardware();
         initHardware();
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
     }
 
     @Override
@@ -41,6 +41,7 @@ public class Tele extends OpModeEx {
         deposit = new Deposit();
 //        deposit.setGamepadEx(gamepadEx2);
         deposit.setGamepadExs(gamepadEx1, gamepadEx2);
+        deposit.setTelemetry(telemetry);
 
         drivetrain = new Drivetrain();
         drivetrain.setGamepadEx(gamepadEx1);
